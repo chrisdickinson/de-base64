@@ -1,6 +1,6 @@
-var Transform = require('stream').Transform
+var Transform = require('readable-stream').Transform
 var Buffer = require('buffer').Buffer
-var util = require('util')
+var inherits = require('inherits')
 
 module.exports = Base64Decode
 
@@ -15,11 +15,11 @@ function Base64Decode(opts) {
   this._last = 0
 }
 
-util.inherits(Base64Decode, Transform)
+inherits(Base64Decode, Transform)
 
 var proto = Base64Decode.prototype
 
-proto._charMap = {
+var charMap = {
   65:  0,  78: 13,   97: 26,  110: 39,  48: 52,
   66:  1,  79: 14,   98: 27,  111: 40,  49: 53,
   67:  2,  80: 15,   99: 28,  112: 41,  50: 54,
@@ -35,45 +35,45 @@ proto._charMap = {
   77: 12,  90: 25,  109: 38,  122: 51,  61: 0
 }
 
+var charMapArr = []
+for(var i = 0, len = 256; i < len; ++i) {
+  charMapArr[i] = charMap[i] || 0
+}
+proto._charMap = new Uint8Array(charMapArr)
+
 proto._transform = function Base64Decode_transform(chunk, enc, callback) {
   if (!Buffer.isBuffer(chunk)) {
     // well, this sort of defeats the purpose...
     chunk = new Buffer(chunk, enc)
   }
-  var byte = 0
-  var last = this._last
-  var current = this._current
-  var cursor = this._cursor
-  var map = this._charMap
   var chunkIdx = 0
+  var backOff = 0
+  var byte = 0
   var input
 
   for(var idx = 0, len = chunk.length; idx < len; ++idx) {
-    last = current
+    this._last = this._current
 
     input = chunk[idx]
-    current = map[input]
+    backOff += Boolean(input == 61) | 0
+    this._current = this._charMap[input]
 
-    switch(cursor) {
-      case 0: byte = (last & 0x3f) << 2 | (current & 0x30) >> 4; break
-      case 1: byte = (last & 0x0f) << 4 | (current & 0x3c) >> 2; break
-      case 2: byte = (last & 0x03) << 6 | (current & 0x3f); break
+    switch(this._cursor) {
+      case 0: byte = (this._last & 0x3f) << 2 | (this._current & 0x30) >> 4; break
+      case 1: byte = (this._last & 0x0f) << 4 | (this._current & 0x3c) >> 2; break
+      case 2: byte = (this._last & 0x03) << 6 | (this._current & 0x3f); break
       case 3: break
     }
 
-    ++cursor
-    cursor &= 3
-    if (cursor) {
+    ++this._cursor
+    this._cursor &= 3
+    if (this._cursor) {
       // write the byte out
       chunk[chunkIdx++] = byte
     }
   }
 
-  this._last = last
-  this._current = current
-  this._cursor = cursor
-
-  callback(null, chunk.slice(0, chunkIdx))
+  callback(null, chunk.slice(0, chunkIdx - backOff))
 }
 
 proto._flush = function Base64Decode_flush(ready) {
