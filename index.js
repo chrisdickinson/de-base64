@@ -51,7 +51,7 @@ Base64Decode.prototype._transform = function Base64Decode_transform(chunk, enc, 
     chunk = new Buffer(chunk, enc)
   }
 
-  //chunk = new Buffer(chunk)
+  chunk = new Buffer(chunk)
   var last = this._decoder.decode(chunk)
   callback(null, chunk.slice(0, last))
 }
