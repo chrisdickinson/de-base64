@@ -1,6 +1,6 @@
 {
   "name": "de-base64",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "decode base64 buffers in place (no copying!)",
   "main": "index.js",
   "dependencies": {
