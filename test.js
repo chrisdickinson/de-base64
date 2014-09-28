@@ -10,8 +10,6 @@ test('works with one padding byte', function(assert) {
 
   transform.on('data', function(result) {
     assert.equal(result.toString(), 'hi')
-    assert.equal(result.parent, buf.parent)
-    assert.equal(result.offset, buf.offset)
   })
 
   transform.on('finish', assert.end)
@@ -24,8 +22,6 @@ test('works with two padding bytes', function(assert) {
 
   transform.on('data', function(result) {
     assert.equal(result.toString(), '!')
-    assert.equal(result.parent, buf.parent)
-    assert.equal(result.offset, buf.offset)
   })
 
   transform.on('finish', assert.end)

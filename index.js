@@ -1,3 +1,5 @@
+'use strict'
+
 var Transform = require('readable-stream').Transform
 var Buffer = require('buffer').Buffer
 var Decoder = require('./decoder.js')
@@ -20,6 +22,8 @@ Base64Decode.prototype._transform = function Base64Decode_transform(chunk, enc, 
     // well, this sort of defeats the purpose...
     chunk = new Buffer(chunk, enc)
   }
-  this._decoder.decode(chunk)
-  callback(null, chunk.slice(0, this._decoder.lastIDX - this._decoder.backOff))
+
+  chunk = new Buffer(chunk)
+  var last = this._decoder.decode(chunk)
+  callback(null, chunk.slice(0, last))
 }
