@@ -61,22 +61,16 @@ function Decoder() {
 
 var proto = Decoder.prototype
 
-// A mapping between ASCII input values and 6-bit
-// surrogate values. Originally, this was held in a
-// precomputed object literal (hanging off the prototype)
-// which turned out to beslow. Then, a Uint8Array (also, 
-// somehow, slow). The fastest of the "lookup table" 
-// variants was actually a plain array!
-//
-// However, it turned out that branching wasn't as
-// expensive as object lookups -- something that eventually
-// developed as a theme!
-
-function map(inp) {
-  return inp > 64 ?
-      inp > 96 ? inp - 71 : inp - 65 :
-      inp == 61 ? 0 : inp + 4
-}
+var decodeChars = [
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63,
+  52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1,
+  -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+  15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1,
+  -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+  41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1
+]
 
 // `decodeByte` decodes a pair of input bytes into a single
 // output byte (for steps 0-2). For step 3, return a constant
@@ -128,10 +122,10 @@ function decodeByte(input, cursor, last, current) {
 //
 // Once you're done reading this function, you should head over to `index.js`.
 
-proto.decode = function Decoder_decode(chunk) {
+proto.decode = function Decoder_decode(bufin, bufout) {
   var current = this._current
   var cursor = this._cursor
-  var len = chunk.length
+  var len = bufin.length
   var lastIDX = 0
   var output
   var input
@@ -140,11 +134,11 @@ proto.decode = function Decoder_decode(chunk) {
   // "v & 3" is the same operation as "v % 4". For all powers 
   // of two N, "v & (N - 1)" === "v % N".
   this._cursor = (this._cursor + len) & 3
-  this._current = map(chunk[len - 1])
+  this._current = decodeChars[bufin[len - 1]]
 
   for(var idx = 0; idx < len; ++idx) {
-    input = chunk[idx]
-    next = map(input)
+    input = bufin[idx]
+    next = decodeChars[input]
     output = decodeByte(input, cursor, current, next)
     current = next
 
@@ -156,7 +150,7 @@ proto.decode = function Decoder_decode(chunk) {
     // skip output if the input was `=`, or if we're on
     // "skip a byte" step.
     if (cursor && input != 61) {
-      chunk[lastIDX++] = output
+      bufout[lastIDX++] = output
     }
   }
 
